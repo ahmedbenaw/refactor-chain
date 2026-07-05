@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "refactor-chain",
+  "version": "4.4.0",
+  "description": "A self-diagnosing, self-healing fix-it pipeline: one door detects what a codebase needs (tidy / modernize / fix a bug / improve UI), routes to the right lane of native refactor-* skills, proves behavior is preserved at every step, reviews before shipping, and explains itself in plain language.",
+  "owner": { "name": "Ahmed \"Ben\" Zayed", "url": "https://zat.vc" },
+  "plugins": [
+    {
+      "name": "refactor-chain",
+      "description": "Self-diagnosing, self-healing refactor/modernize/fix pipeline — 56 skills across backend/web/ui/code/debug lanes plus diagnose/verify/review/ship/improve phases and a discipline pack. Universal language registry, principle-driven engine, guidelines gate. Plain-language, ADHD-friendly, behavior-preserving.",
+      "source": "./",
+      "category": "developer-tools"
+    }
+  ]
+}
