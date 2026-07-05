@@ -1,0 +1,176 @@
+<svg viewBox="0 0 1774 887" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="refactor-chain — autonomous refactoring infrastructure. A self-diagnosing, self-healing fix-it pipeline for your codebase.">
+  <defs>
+    <pattern id="dotgrid" x="0" y="0" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.3" fill="#ffffff" opacity="0.055"/>
+    </pattern>
+    <linearGradient id="fadeRight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0a0a0f" stop-opacity="1"/>
+      <stop offset="0.35" stop-color="#0a0a0f" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ===== Background ===== -->
+  <rect x="0" y="0" width="1774" height="887" fill="#0a0a0f"/>
+  <rect x="850" y="0" width="924" height="648" fill="url(#dotgrid)"/>
+  <rect x="850" y="0" width="400" height="648" fill="url(#fadeRight)"/>
+
+  <!-- Flowing curved lines sweeping right -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M -80 560 C 420 470, 950 620, 1850 330" stroke="#2563eb" stroke-width="1.5" opacity="0.14"/>
+    <path d="M -80 610 C 480 520, 1020 660, 1850 420" stroke="#2563eb" stroke-width="1.2" opacity="0.09"/>
+    <path d="M -80 500 C 380 440, 900 560, 1850 250" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+    <path d="M -80 660 C 520 580, 1080 700, 1850 520" stroke="#ffffff" stroke-width="1" opacity="0.04"/>
+  </g>
+
+  <!-- ===== Logo mark ===== -->
+  <g>
+    <rect x="90" y="78" width="122" height="122" rx="28" fill="#ffffff"/>
+    <!-- Geometric terminal-style R glyph -->
+    <g fill="none" stroke="#0a0a0f" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 126 108 L 126 172"/>
+      <path d="M 126 108 L 158 108 A 21 21 0 0 1 158 150 L 126 150"/>
+      <path d="M 148 150 L 176 172"/>
+    </g>
+    <rect x="176" y="164" width="15" height="15" fill="#2563eb"/>
+  </g>
+
+  <!-- Divider -->
+  <line x1="252" y1="90" x2="252" y2="210" stroke="#262933" stroke-width="2"/>
+
+  <!-- ===== Title ===== -->
+  <text x="290" y="164" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="86" font-weight="700" letter-spacing="-2"><tspan fill="#ffffff">refactor-</tspan><tspan fill="#2563eb">chain</tspan></text>
+  <text x="292" y="214" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="19" font-weight="600" letter-spacing="6.5" fill="#8b90a0">AUTONOMOUS REFACTORING INFRASTRUCTURE</text>
+
+  <!-- ===== Tagline ===== -->
+  <text x="92" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="38" font-weight="500" fill="#d7dae2">A self-diagnosing, self-healing</text>
+  <text x="92" y="380" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="38" font-weight="500" fill="#d7dae2">fix-it <tspan fill="#2563eb">pipeline</tspan> for your codebase.</text>
+  <text x="92" y="446" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" letter-spacing="2.5" fill="#6b7080">ONE COMMAND <tspan fill="#2563eb">·</tspan> INTELLIGENT ROUTING <tspan fill="#2563eb">·</tspan> BEHAVIOR-PRESERVING EXECUTION</text>
+
+  <!-- ===== Pipeline (right half) ===== -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <!-- connectors -->
+    <g stroke="#2f3340" stroke-width="2">
+      <line x1="1044" y1="300" x2="1096" y2="300"/>
+      <line x1="1182" y1="300" x2="1234" y2="300"/>
+      <line x1="1320" y1="300" x2="1372" y2="300"/>
+      <line x1="1458" y1="300" x2="1510" y2="300"/>
+      <line x1="1596" y1="300" x2="1648" y2="300"/>
+    </g>
+    <!-- blue square nodes on connectors -->
+    <g fill="#2563eb">
+      <rect x="1066" y="296" width="8" height="8"/>
+      <rect x="1204" y="296" width="8" height="8"/>
+      <rect x="1342" y="296" width="8" height="8"/>
+      <rect x="1480" y="296" width="8" height="8"/>
+      <rect x="1618" y="296" width="8" height="8"/>
+    </g>
+
+    <!-- Stage 1: UNDERSTAND (magnifier), cx=1002 -->
+    <rect x="960" y="258" width="84" height="84" rx="20" fill="#0f1016" stroke="#33363f" stroke-width="2"/>
+    <g fill="none" stroke="#d7dae2" stroke-width="3" stroke-linecap="round">
+      <circle cx="998" cy="296" r="13"/>
+      <line x1="1008" y1="306" x2="1018" y2="316"/>
+    </g>
+    <text x="1002" y="380" text-anchor="middle" font-size="15" font-weight="700" letter-spacing="2" fill="#ffffff">UNDERSTAND</text>
+    <text x="1002" y="404" text-anchor="middle" font-size="12.5" fill="#8b90a0">See the whole</text>
+    <text x="1002" y="422" text-anchor="middle" font-size="12.5" fill="#8b90a0">picture</text>
+
+    <!-- Stage 2: DIAGNOSE (target), cx=1140 -->
+    <rect x="1098" y="258" width="84" height="84" rx="20" fill="#0f1016" stroke="#33363f" stroke-width="2"/>
+    <g fill="none" stroke="#d7dae2" stroke-width="3">
+      <circle cx="1140" cy="300" r="16"/>
+      <circle cx="1140" cy="300" r="8.5"/>
+      <circle cx="1140" cy="300" r="1.5" fill="#d7dae2"/>
+    </g>
+    <text x="1140" y="380" text-anchor="middle" font-size="15" font-weight="700" letter-spacing="2" fill="#ffffff">DIAGNOSE</text>
+    <text x="1140" y="404" text-anchor="middle" font-size="12.5" fill="#8b90a0">Find what</text>
+    <text x="1140" y="422" text-anchor="middle" font-size="12.5" fill="#8b90a0">really matters</text>
+
+    <!-- Stage 3: PLAN (branch graph), cx=1278 -->
+    <rect x="1236" y="258" width="84" height="84" rx="20" fill="#0f1016" stroke="#33363f" stroke-width="2"/>
+    <g fill="none" stroke="#d7dae2" stroke-width="3" stroke-linecap="round">
+      <circle cx="1267" cy="286" r="4.5"/>
+      <circle cx="1267" cy="314" r="4.5"/>
+      <circle cx="1291" cy="286" r="4.5"/>
+      <line x1="1267" y1="291" x2="1267" y2="309"/>
+      <path d="M 1291 291 C 1291 302, 1267 298, 1267 309"/>
+    </g>
+    <text x="1278" y="380" text-anchor="middle" font-size="15" font-weight="700" letter-spacing="2" fill="#ffffff">PLAN</text>
+    <text x="1278" y="404" text-anchor="middle" font-size="12.5" fill="#8b90a0">Build the</text>
+    <text x="1278" y="422" text-anchor="middle" font-size="12.5" fill="#8b90a0">right plan</text>
+
+    <!-- Stage 4: EXECUTE (code), cx=1416 -->
+    <rect x="1374" y="258" width="84" height="84" rx="20" fill="#0f1016" stroke="#33363f" stroke-width="2"/>
+    <g fill="none" stroke="#d7dae2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 1403 291 L 1394 300 L 1403 309"/>
+      <path d="M 1429 291 L 1438 300 L 1429 309"/>
+      <line x1="1420" y1="288" x2="1412" y2="312"/>
+    </g>
+    <text x="1416" y="380" text-anchor="middle" font-size="15" font-weight="700" letter-spacing="2" fill="#ffffff">EXECUTE</text>
+    <text x="1416" y="404" text-anchor="middle" font-size="12.5" fill="#8b90a0">Make safe,</text>
+    <text x="1416" y="422" text-anchor="middle" font-size="12.5" fill="#8b90a0">verified changes</text>
+
+    <!-- Stage 5: VERIFY (shield-check), cx=1554 -->
+    <rect x="1512" y="258" width="84" height="84" rx="20" fill="#0f1016" stroke="#33363f" stroke-width="2"/>
+    <g fill="none" stroke="#d7dae2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 1554 284 L 1567 290 L 1567 302 C 1567 310, 1554 316, 1554 316 C 1554 316, 1541 310, 1541 302 L 1541 290 Z"/>
+      <path d="M 1548 300 L 1552.5 304.5 L 1560 295"/>
+    </g>
+    <text x="1554" y="380" text-anchor="middle" font-size="15" font-weight="700" letter-spacing="2" fill="#ffffff">VERIFY</text>
+    <text x="1554" y="404" text-anchor="middle" font-size="12.5" fill="#8b90a0">Prove behavior</text>
+    <text x="1554" y="422" text-anchor="middle" font-size="12.5" fill="#8b90a0">is preserved</text>
+
+    <!-- Stage 6: SHIP (arrow-out box, blue accent), cx=1692 -->
+    <rect x="1650" y="258" width="84" height="84" rx="20" fill="#0f1016" stroke="#2563eb" stroke-width="2"/>
+    <g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 1680 300 L 1680 312 L 1704 312 L 1704 300" stroke="#d7dae2"/>
+      <line x1="1692" y1="306" x2="1692" y2="286" stroke="#2563eb"/>
+      <path d="M 1686 292 L 1692 285 L 1698 292" stroke="#2563eb"/>
+    </g>
+    <text x="1692" y="380" text-anchor="middle" font-size="15" font-weight="700" letter-spacing="2" fill="#2563eb">SHIP</text>
+    <text x="1692" y="404" text-anchor="middle" font-size="12.5" fill="#8b90a0">Ship only after</text>
+    <text x="1692" y="422" text-anchor="middle" font-size="12.5" fill="#8b90a0">review gate</text>
+  </g>
+
+  <!-- ===== Bottom strip ===== -->
+  <line x1="0" y1="652" x2="1774" y2="652" stroke="#1d1f28" stroke-width="2"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <!-- Chip 1: SAFE BY DESIGN (shield icon) -->
+    <g fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 100 688 L 109 692 L 109 700 C 109 706, 100 710, 100 710 C 100 710, 91 706, 91 700 L 91 692 Z"/>
+    </g>
+    <text x="122" y="698" font-size="14" font-weight="700" letter-spacing="1.2" fill="#ffffff">SAFE BY DESIGN</text>
+    <text x="122" y="721" font-size="13.5" fill="#8b90a0">Baseline first. Verify every step.</text>
+
+    <!-- Chip 2: SELF-HEALING (circular arrow icon) -->
+    <g fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 400 693 A 9 9 0 1 1 397 706"/>
+      <path d="M 396 700 L 396 707 L 403 707"/>
+    </g>
+    <text x="422" y="698" font-size="14" font-weight="700" letter-spacing="1.2" fill="#ffffff">SELF-HEALING</text>
+    <text x="422" y="721" font-size="13.5" fill="#8b90a0">If a step fails, undo &amp; recover.</text>
+
+    <!-- Chip 3: REVIEW GATE (check-in-circle icon) -->
+    <g fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="700" cy="699" r="10"/>
+      <path d="M 695 699 L 699 703 L 706 694"/>
+    </g>
+    <text x="722" y="698" font-size="14" font-weight="700" letter-spacing="1.2" fill="#ffffff">REVIEW GATE</text>
+    <text x="722" y="721" font-size="13.5" fill="#8b90a0">Nothing ships without approval.</text>
+
+    <!-- Chip 4: PLAIN LANGUAGE (speech bubble icon) -->
+    <g fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 970 690 L 990 690 L 990 703 L 979 703 L 973 709 L 973 703 L 970 703 Z"/>
+    </g>
+    <text x="1002" y="698" font-size="14" font-weight="700" letter-spacing="1.2" fill="#ffffff">PLAIN LANGUAGE</text>
+    <text x="1002" y="721" font-size="13.5" fill="#8b90a0">Explains everything as it goes.</text>
+
+    <!-- Stats -->
+    <text x="1684" y="710" text-anchor="end" font-size="13.5" font-weight="600" letter-spacing="1.5" fill="#6b7080"><tspan fill="#d7dae2">48</tspan> SKILLS <tspan fill="#2563eb">·</tspan> <tspan fill="#d7dae2">61</tspan> COMMANDS <tspan fill="#2563eb">·</tspan> <tspan fill="#d7dae2">6</tspan> HOOKS <tspan fill="#2563eb">·</tspan> <tspan fill="#d7dae2">∞</tspan> BEHAVIOR PRESERVING</text>
+  </g>
+
+  <!-- ===== Command bar ===== -->
+  <rect x="467" y="760" width="840" height="60" rx="14" fill="#0f1118" stroke="#262a35" stroke-width="2"/>
+  <text x="887" y="797" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="19"><tspan fill="#6b7080">&gt; </tspan><tspan fill="#2563eb" font-weight="700">/refactor</tspan><tspan fill="#d7dae2"> "Tidy this up and modernize the architecture."</tspan></text>
+</svg>

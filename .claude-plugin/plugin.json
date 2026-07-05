@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "refactor-chain",
+  "version": "4.0.0",
+  "description": "refactor-chain v3 — a self-diagnosing, self-healing fix-it pipeline. One door (/refactor, /fix, /check) detects what a codebase needs (tidy structure / modernize / fix a bug / improve UI), routes to the right lane of 56 native refactor-* skills, proves behavior is preserved at every step (baseline + verify + review gate + guidelines gate), and explains itself in plain language. Universal language registry (40+ languages classified by family, variants, and frameworks — first-class C, C++, Erlang, Elixir, Rust, Go, Python, .NET, JVM, BEAM, Apple/mobile, COBOL/Fortran and more, plus embedded-platform detection), principle-driven structural engine (SOLID and beyond, user-chosen), guidelines extract/audit/conform engine, deterministic detection + resumable state machine + 6 dormant-until-active hooks + mid-session decision checkpoints + self-improvement loop.",
+  "author": {
+    "name": "Ahmed \"Ben\" Zayed",
+    "url": "https://zat.vc"
+  },
+  "keywords": [
+    "refactor",
+    "architecture",
+    "governance",
+    "solid",
+    "principles",
+    "guidelines",
+    "chain-of-skills",
+    "self-healing",
+    "orchestration",
+    "polyglot",
+    "java",
+    "frontend",
+    "ui"
+  ],
+  "hooks": "./hooks/hooks.json"
+}

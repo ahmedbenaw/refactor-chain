@@ -1,0 +1,104 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [4.0.0] — 2026-07
+
+Breaking renames per our own semver policy (a command rename is MAJOR):
+
+### Changed (BREAKING)
+- **Generic backend lane:** `refactor-java-01…09` → `refactor-jvm-*` → **`refactor-backend-01…09`**, lane id **`backend`**. Generic in name AND function: lane membership is registry-driven (`lane: "backend"` in `scripts/lib/languages.mjs` — Java, Kotlin, Scala, C# today; extending it is a data edit), all nine skills reframed language-agnostic, each method gaining a cross-stack mapping table (Spring / .NET / Go / Python / Ruby / PHP / Rust). Concepts absent in a stack report N/A, never forced.
+- **Principles engine:** `refactor-code-solid` → **`refactor-code-principles`** — SOLID is one catalog entry of 26; recommendations harness-native per stack.
+- **Terminology:** "kaizen" → plain language (improvement retro / improvement loop / history prior).
+
+## [3.0.0] — 2026-07 *(superseded same-day by 4.0.0; the renames above landed after the v3 cut)*
+
+### Changed
+- **Engine rename:** `refactor-code-solid` → **`refactor-code-principles`** — the principle-driven structural engine (SOLID is one entry in a 26-principle catalog). Same behavior-preservation contract; every lane's final step updated.
+- **Terminology:** "kaizen" nativized to plain language throughout — improvement retro, improvement loop, history prior.
+- **Lane rename:** the Java governance lane is now the **JVM lane** — `refactor-java-01…09` → `refactor-backend-01…09`, lane id `java` → `jvm`. Same nine skills, same order, generic governance for any Maven/Gradle/JVM project. (Deliberate breaking rename decided at release; the `java` *language* id is unchanged.)
+
+### Added
+- Language registry: Delphi/Object Pascal/Pascal Script and curl/HTTP-script collections (registry now covers the full 41-language plan list; case-insensitive variant coverage test).
+- Harness-native principle recommendations: `diagnose classify` emits `{agnostic, stackMapped}` from the principles registry; persisted in `state.diagnosis` for the plan-phase decision window (`tests/principles.test.mjs`, 57 checks).
+- Native spec-kit backing: `.specify/` detection (dot-dir walk fix), `conditional.specKit`, a plain-language Integrate-vs-Adopt note in classify, and the interop contract in `docs/ARCHITECTURE.md`.
+- `docs/USAGE.md` — the complete usage guide: all 69 commands, worked use cases, macOS/Linux/Windows notes.
+- Repo linting: `.editorconfig` + dependency-free `eslint.config.js` (core rules) with a CI lint gate.
+- Preservation regression suite (`tests/preservation.test.mjs`, 142 frozen-inventory checks) and an installer↔manifest hook-parity audit check.
+- `orchestrate init --plan-note` records the plan-gate mini-plan into state.
+
+- **Universal language taxonomy** — registry-driven detection for 40+
+  languages (JS/TS, Java, Kotlin, Scala, C, C++, C#, Go, Rust, Zig, Python,
+  Ruby, PHP, Perl, Lua, Swift, Objective-C, Dart, Erlang, Elixir, Haskell,
+  OCaml, Lisp, Prolog, Ada/SPARK, COBOL, Fortran, R, MATLAB, SQL, Nix,
+  WebAssembly, shell, and more). Adding a language is a data edit, not a code
+  change; each entry carries detection markers, test-framework candidates,
+  lane routing, and platform hints.
+- **Principles registry + plan-time decision window** — an agnostic baseline
+  plus family-mapped engineering principles, recommended per detected stack;
+  the user accepts, mixes, or deliberately overrides with risks stated
+  plainly and the decision recorded.
+- **Guidelines engine + conformance gate** — extract a codebase's observed
+  conventions, audit them against a top-1% baseline, and require 100% PASS at
+  the review gate (explicit, recorded user exceptions are the only bypass).
+- **Per-project memory + 6th hook** — a SessionEnd hook captures durable
+  facts (run position, retro outcome, flagged scope drift) into
+  `.refactor-chain/memory/sessions.jsonl`; SessionStart replays a one-line
+  recall. Never transcripts, never secrets.
+- **`doctor` subcommand** — environment self-check: Node version, git
+  availability, space-free harness path, state integrity, hook registration.
+- **Discipline skills** — plan-gate, adversarial-verify, live-truth,
+  scope-fence, ruthless-editor, memory, guidelines-contract, and ci-agent.
+- **GitHub Action** — a composite, report-only refactor-readiness action
+  (`uses: ahmedbenaw/refactor-chain@v3`): deterministic analysis by default,
+  opt-in agent mode via the caller's own agent CLI, optional PR comment.
+- **Tests, audit, and CI** — a `tests/` suite (`tests/run-all.mjs`), a
+  repo-wide audit script (`scripts/audit.mjs`), and a CI workflow that runs
+  them on every push and pull request.
+
+### Changed
+
+- Governance lanes reauthored as **generic, industry-standard, and
+  framework-adaptive** guidance rather than any single organization's
+  conventions.
+- **Gradle projects now route to the JVM lane** (Android apps still route to
+  the mobile UI lane).
+- Detection is now **registry-driven** end to end: lanes, platforms, and test
+  frameworks resolve through the language registry instead of hard-coded
+  checks.
+
+### Removed
+
+- All third-party-derived content, replaced by original equivalents authored
+  for this project.
+- Organization-specific rulesets.
+
+### Fixed
+
+- Generic projects no longer receive organization-specific guidance.
+
+## [2.0.0] — 2026-06
+
+Initial public release.
+
+### Added
+
+- The end-to-end pipeline: understand → diagnose → plan → baseline →
+  do-the-work → secure/review → docs → ship → improve, with a deterministic,
+  resumable, self-healing state machine.
+- **48 skills** across five lanes (Java governance, web structure, UI/visual,
+  generic structural, and debug) and **61 plain-language commands**.
+- **5 hooks** (SessionStart resume, UserPromptSubmit intake, PreToolUse
+  risk-guard, PostToolUse self-heal guard, Stop ship-gate), all dormant
+  unless a chain is active in the project.
+- **3-layer installer** — POSIX shell / PowerShell wizard, a Node wizard
+  (`rcx.mjs`), and a self-contained Go binary — covering Claude Code, Claude
+  Cowork, Codex, and eleven editors, with backups, verification, and
+  self-troubleshooting.
+- **5-platform binaries** published on the Releases page.
+
+[3.0.0]: https://github.com/ahmedbenaw/refactor-chain/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/ahmedbenaw/refactor-chain/releases/tag/v2.0.0
