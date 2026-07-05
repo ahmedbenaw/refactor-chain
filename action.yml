@@ -1,0 +1,168 @@
+name: "refactor-chain"
+description: >-
+  Refactor-readiness report for any repository: classifies the codebase
+  (lane, confidence, languages), audits its observed guidelines against a
+  top-1% baseline, and publishes a ranked markdown report to the job summary
+  (and optionally as a PR comment). Report-only — it never edits, pushes,
+  or merges. Optional agent mode pipes a bounded read-only review prompt to
+  the caller's own agent CLI.
+author: Ahmed "Ben" Zayed
+branding:
+  icon: refresh-cw
+  color: blue
+
+inputs:
+  mode:
+    description: >-
+      "deterministic" runs only the zero-dependency analysis scripts.
+      "agent" additionally pipes a bounded, read-only review prompt to the
+      command given in agent-cmd (the user's own agent CLI and credentials).
+    required: false
+    default: deterministic
+  target:
+    description: Directory to analyze, relative to the workspace.
+    required: false
+    default: "."
+  agent-cmd:
+    description: >-
+      Command line for the user's own agent CLI (for example "claude -p" or
+      "codex exec"). Required when mode is "agent". The command runs with the
+      caller's environment and authentication — this action never supplies or
+      stores credentials.
+    required: false
+    default: ""
+  comment:
+    description: >-
+      When "true" and a GITHUB_TOKEN is available on a pull request, post the
+      readiness report as a single PR comment (edited in place on re-runs).
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Guard agent mode
+      if: ${{ inputs.mode == 'agent' && inputs.agent-cmd == '' }}
+      shell: bash
+      run: |
+        echo "refactor-chain: agent mode needs an agent command."
+        echo "Set the 'agent-cmd' input to your own agent CLI (for example 'claude -p' or 'codex exec')."
+        echo "The command uses YOUR credentials; this action never provides any."
+        exit 1
+
+    - name: Set up Node
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      with:
+        node-version: "20"
+
+    - name: Classify, audit, doctor (read-only)
+      shell: bash
+      env:
+        RC_TARGET: ${{ inputs.target }}
+        RC_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        RC_OUT="$RUNNER_TEMP/refactor-chain"
+        mkdir -p "$RC_OUT"
+        node "$RC_ACTION_PATH/scripts/diagnose.mjs" classify --target "$RC_TARGET" > "$RC_OUT/classify.json"
+        node "$RC_ACTION_PATH/scripts/lib/guidelines.mjs" audit --target "$RC_TARGET" > "$RC_OUT/audit.json"
+        node "$RC_ACTION_PATH/scripts/orchestrate.mjs" doctor --target "$RC_TARGET" > "$RC_OUT/doctor.json"
+
+    - name: Assemble refactor-readiness report
+      shell: bash
+      run: |
+        set -euo pipefail
+        RC_OUT="$RUNNER_TEMP/refactor-chain"
+        cat > "$RC_OUT/report.mjs" <<'REPORT_MJS'
+        import { readFileSync, writeFileSync } from "node:fs";
+        import { join } from "node:path";
+        const dir = process.argv[2];
+        const j = (f) => JSON.parse(readFileSync(join(dir, f), "utf8"));
+        const c = j("classify.json"), a = j("audit.json"), d = j("doctor.json");
+        const langs = (c.signals || []).find((s) => s.startsWith("languages:"));
+        const sevIcon = { blocker: "🔴", "worth-fixing": "🟡", optional: "⚪" };
+        const lines = [
+          "## refactor-chain — refactor-readiness report",
+          "",
+          "Report-only. Nothing in this repository was edited, pushed, or merged.",
+          "",
+          "| Signal | Value |",
+          "| --- | --- |",
+          `| Lane | \`${c.lane}\` (${c.case}) |`,
+          `| Confidence | ${Math.round((c.confidence || 0) * 100)}% |`,
+          `| In scope | ${c.inScope ? "yes" : "no"} |`,
+          `| Languages | ${langs ? langs.slice("languages:".length) : "n/a"} |`,
+          `| Platform / OS | ${c.platform || "?"} / ${c.os || "?"} |`,
+          `| Harness health | ${d.ok ? "healthy" : "needs attention"} |`,
+          "",
+          "### Guideline gaps (most important first)",
+          "",
+        ];
+        if ((a.gaps || []).length === 0) {
+          lines.push("None — this codebase already meets the baseline.");
+        } else {
+          for (const g of a.gaps) lines.push(`- ${sevIcon[g.severity] || ""} **${g.severity}** — ${g.plain} (\`${g.id}\`)`);
+        }
+        lines.push("", `_${a.summary || ""}_`, "");
+        writeFileSync(join(dir, "report.md"), lines.join("\n"));
+        REPORT_MJS
+        node "$RC_OUT/report.mjs" "$RC_OUT"
+        cat "$RC_OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Agent review (opt-in, read-only)
+      if: ${{ inputs.mode == 'agent' }}
+      shell: bash
+      env:
+        RC_AGENT_CMD: ${{ inputs.agent-cmd }}
+      run: |
+        set -euo pipefail
+        RC_OUT="$RUNNER_TEMP/refactor-chain"
+        PROMPT="Run the refactor-chain review gate read-only on this diff and summarize. \
+        Do not edit files, do not push, do not merge — report findings only, ranked by severity, \
+        in under 400 words of plain language."
+        # The agent command is the USER's own CLI with the USER's own auth.
+        # Its output is capped so a chatty agent cannot flood the summary.
+        printf '%s\n' "$PROMPT" | $RC_AGENT_CMD | head -c 20000 > "$RC_OUT/agent-review.md" \
+          || { echo "refactor-chain: the agent command failed; the deterministic report above still stands."; exit 1; }
+        {
+          echo ""
+          echo "### Agent review (read-only)"
+          echo ""
+          cat "$RC_OUT/agent-review.md"
+        } >> "$RC_OUT/report.md"
+        {
+          echo ""
+          echo "### Agent review (read-only)"
+          echo ""
+          cat "$RC_OUT/agent-review.md"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Post PR comment (edit-in-place)
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        RC_REPO: ${{ github.repository }}
+        RC_PR: ${{ github.event.pull_request.number }}
+      run: |
+        set -euo pipefail
+        # gh reads GH_TOKEN or GITHUB_TOKEN from the environment the caller provides.
+        export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+        if [ -z "$GH_TOKEN" ]; then
+          echo "refactor-chain: comment=true but no GITHUB_TOKEN in the environment — skipping the PR comment."
+          exit 0
+        fi
+        RC_OUT="$RUNNER_TEMP/refactor-chain"
+        MARKER="<!-- refactor-chain-readiness-report -->"
+        printf '%s\n\n' "$MARKER" | cat - "$RC_OUT/report.md" > "$RC_OUT/comment.md"
+        # One calm comment per PR: find our previous comment and edit it in place.
+        EXISTING=$(gh api "repos/$RC_REPO/issues/$RC_PR/comments" --paginate \
+          --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1 || true)
+        if [ -n "$EXISTING" ]; then
+          gh api --method PATCH "repos/$RC_REPO/issues/comments/$EXISTING" \
+            -F body=@"$RC_OUT/comment.md" > /dev/null
+          echo "refactor-chain: updated the existing PR comment ($EXISTING)."
+        else
+          gh api --method POST "repos/$RC_REPO/issues/$RC_PR/comments" \
+            -F body=@"$RC_OUT/comment.md" > /dev/null
+          echo "refactor-chain: posted the PR comment."
+        fi
