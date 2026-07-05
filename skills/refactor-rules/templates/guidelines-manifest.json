@@ -1,0 +1,33 @@
+{
+  "$comment": "Template for .refactor-chain/guidelines.json — produced by `node scripts/lib/guidelines.mjs extract --target <project>`. Every field is OBSERVED from the codebase, never aspirational; unknowns stay null.",
+  "extractedAt": "<ISO timestamp>",
+  "formatting": {
+    "indent": "<spaces-2|spaces-4|tabs|null>",
+    "quotes": "<single|double|mixed|null>",
+    "semicolons": "<always|never|mixed|null>",
+    "maxLineObserved": 0,
+    "trailingCommas": "<yes|no|mixed|null>"
+  },
+  "naming": {
+    "files": "<kebab-case|camelCase|PascalCase|snake_case|mixed>",
+    "identifiers": "<camelCase|snake_case|mixed>",
+    "constants": "<UPPER_SNAKE|mixed|null>"
+  },
+  "structure": {
+    "layering": "<layered|flat|feature-folders|null>",
+    "testLocation": "<colocated|tests-dir|none>",
+    "entryPoints": []
+  },
+  "tooling": {
+    "formatterConfig": "<path or null>",
+    "linterConfig": "<path or null>",
+    "editorconfig": false,
+    "ciConfig": "<path or null>"
+  },
+  "discipline": {
+    "hasTests": false,
+    "testFramework": "<name or null>",
+    "errorHandling": "<explicit|mixed|silent-catch-observed>",
+    "docsPresent": false
+  }
+}
