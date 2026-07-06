@@ -1,0 +1,278 @@
+{
+  "name": "refactor-chain",
+  "version": "2.0.0",
+  "description": "Shared install contract. Every installer layer (install.sh, install.ps1, rcx.mjs, Go binary) reads THIS and produces identical results. ahmedbenaw is substituted with the GitHub owner at publish time.",
+  "repo": "https://github.com/ahmedbenaw/refactor-chain",
+  "tarball": "https://github.com/ahmedbenaw/refactor-chain/archive/refs/heads/main.tar.gz",
+  "raw": "https://raw.githubusercontent.com/ahmedbenaw/refactor-chain/main",
+  "runtime": {
+    "node_min_major": 18,
+    "note": "Node is only needed for the rcx.mjs wizard and for the plugin's own scripts at runtime; the shell core installs without it and can bootstrap it when a surface needs it."
+  },
+  "artifacts": {
+    "skills": "skills",
+    "commands": "commands",
+    "hooks_json": "hooks/hooks.json",
+    "scripts": "scripts",
+    "plugin_manifest": ".claude-plugin/plugin.json"
+  },
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "script": "scripts/boot.mjs"
+    },
+    {
+      "event": "UserPromptSubmit",
+      "matcher": "*",
+      "script": "scripts/intake.mjs"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Edit|Write|MultiEdit|Bash",
+      "script": "scripts/risk-guard.mjs"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write|MultiEdit",
+      "script": "scripts/guard.mjs"
+    },
+    {
+      "event": "Stop",
+      "matcher": "*",
+      "script": "scripts/ship-gate.mjs"
+    },
+    {
+      "event": "SessionEnd",
+      "matcher": "*",
+      "script": "scripts/memory-capture.mjs"
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "tier": "first-class",
+      "method": "claude-home",
+      "detect": {
+        "dirs": [
+          "~/.claude"
+        ],
+        "always_try": true
+      },
+      "install": {
+        "skills_to": "~/.claude/skills",
+        "commands_to": "~/.claude/commands",
+        "hooks_to": "~/.claude/settings.json",
+        "hook_scripts_at": "~/.claude/skills/refactor-chain/scripts"
+      },
+      "verify": [
+        "~/.claude/skills/refactor-chain/SKILL.md",
+        "~/.claude/commands/refactor.md"
+      ]
+    },
+    {
+      "id": "claude-cowork",
+      "label": "Claude Cowork (desktop app)",
+      "tier": "first-class",
+      "method": "claude-home",
+      "detect": {
+        "dirs": [
+          "~/Library/Application Support/Claude",
+          "$APPDATA/Claude",
+          "$HOME/.config/Claude"
+        ]
+      },
+      "install": {
+        "note": "shares ~/.claude with Claude Code — installing claude-code covers Cowork too",
+        "same_as": "claude-code"
+      },
+      "verify": [
+        "~/.claude/skills/refactor-chain/SKILL.md"
+      ]
+    },
+    {
+      "id": "codex",
+      "label": "Codex",
+      "tier": "first-class",
+      "method": "codex-home",
+      "detect": {
+        "dirs": [
+          "~/.codex"
+        ]
+      },
+      "install": {
+        "plugin_to": "~/.codex/plugins/refactor-chain",
+        "hooks_to": "~/.codex/hooks.json",
+        "hook_scripts_at": "~/.codex/plugins/refactor-chain/scripts"
+      },
+      "verify": [
+        "~/.codex/plugins/refactor-chain/.claude-plugin/plugin.json"
+      ]
+    },
+    {
+      "id": "cursor",
+      "label": "Cursor",
+      "tier": "first-class",
+      "method": "npx-skills",
+      "agent": "cursor",
+      "detect": {
+        "apps": [
+          "Cursor"
+        ],
+        "bins": [
+          "cursor"
+        ]
+      }
+    },
+    {
+      "id": "vscode",
+      "label": "VS Code + Copilot",
+      "tier": "first-class",
+      "method": "npx-skills",
+      "agent": "github-copilot",
+      "detect": {
+        "apps": [
+          "Visual Studio Code",
+          "VSCodium"
+        ],
+        "bins": [
+          "code",
+          "codium"
+        ]
+      }
+    },
+    {
+      "id": "windsurf",
+      "label": "Windsurf",
+      "method": "npx-skills",
+      "agent": "windsurf",
+      "detect": {
+        "apps": [
+          "Windsurf"
+        ],
+        "bins": [
+          "windsurf"
+        ]
+      }
+    },
+    {
+      "id": "zed",
+      "label": "Zed",
+      "method": "npx-skills",
+      "agent": "zed",
+      "detect": {
+        "apps": [
+          "Zed"
+        ],
+        "bins": [
+          "zed"
+        ]
+      }
+    },
+    {
+      "id": "cline",
+      "label": "Cline",
+      "method": "npx-skills",
+      "agent": "cline",
+      "detect": {
+        "vscode_ext": [
+          "saoudrizwan.claude-dev"
+        ]
+      }
+    },
+    {
+      "id": "roo",
+      "label": "Roo Code",
+      "method": "npx-skills",
+      "agent": "roo",
+      "detect": {
+        "vscode_ext": [
+          "rooveterinaryinc.roo-cline"
+        ]
+      }
+    },
+    {
+      "id": "continue",
+      "label": "Continue",
+      "method": "npx-skills",
+      "agent": "continue",
+      "detect": {
+        "dirs": [
+          "~/.continue"
+        ]
+      }
+    },
+    {
+      "id": "gemini-cli",
+      "label": "Gemini CLI",
+      "method": "npx-skills",
+      "agent": "gemini-cli",
+      "detect": {
+        "bins": [
+          "gemini"
+        ],
+        "dirs": [
+          "~/.gemini"
+        ]
+      }
+    },
+    {
+      "id": "aider",
+      "label": "Aider",
+      "method": "npx-skills",
+      "agent": "aider-desk",
+      "detect": {
+        "bins": [
+          "aider"
+        ]
+      }
+    },
+    {
+      "id": "opencode",
+      "label": "opencode",
+      "method": "npx-skills",
+      "agent": "opencode",
+      "detect": {
+        "bins": [
+          "opencode"
+        ]
+      }
+    },
+    {
+      "id": "amp",
+      "label": "Amp",
+      "method": "npx-skills",
+      "agent": "amp",
+      "detect": {
+        "bins": [
+          "amp"
+        ]
+      }
+    }
+  ],
+  "package_managers": {
+    "macos": [
+      "brew"
+    ],
+    "linux": [
+      "apt-get",
+      "dnf",
+      "pacman",
+      "zypper",
+      "apk",
+      "brew"
+    ],
+    "windows": [
+      "winget",
+      "choco",
+      "scoop"
+    ]
+  },
+  "npx_skills_broad": "npx -y skills@latest add ahmedbenaw/refactor-chain --global --agent <agent> --skill '*' -y --copy --full-depth",
+  "notes": {
+    "claude_ai": "claude.ai is a hosted surface with no filesystem CLI — skills are added there via its Connector/settings UI, not this installer.",
+    "space_in_path": "Hook script paths must be space-free absolute paths (a plugin-hook-space bug otherwise vetoes tools). ~/.claude and ~/.codex are space-free; the installer must warn if it ever writes a hook path containing a space.",
+    "idempotent": "Re-running is safe: back up settings before editing, replace prior refactor-chain hook entries (match on 'refactor-chain/scripts/'), never duplicate."
+  }
+}
