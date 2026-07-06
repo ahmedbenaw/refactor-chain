@@ -1,0 +1,14 @@
+[
+  { "source": "board", "findings": [
+    { "where": "scripts/ship-gate.mjs:31", "cause": "the done gate keyed on a phase string the harness never sets, so it approved prematurely", "severity": "blocker", "confidence": 0.95, "fix": "gate on the review-gate step status, not a phase string", "behaviorChanged": true, "sources": ["architecture"] },
+    { "where": "scripts/lib/guidelines.mjs:1", "cause": "the mandatory 100% guidelines gate trusted a cached manifest and a bare-id exception array, so it was bypassable", "severity": "blocker", "confidence": 0.92, "fix": "always re-extract observed facts; require {id,reason,approvedAt} exception records", "behaviorChanged": true, "sources": ["harness"] },
+    { "where": "scripts/orchestrate.mjs:80", "cause": "scope-fence keyed on a scope field that was never populated, so it recorded but never fenced", "severity": "blocker", "confidence": 0.9, "fix": "path-segment + separator-normalized matcher on the step scope", "behaviorChanged": true, "sources": ["correctness"] }
+  ] },
+  { "source": "board", "findings": [
+    { "where": "scripts/lib/panel-aggregate.mjs:44", "cause": "a string confidence collapsed to 0.5 and flipped decisions", "severity": "worth-fixing", "confidence": 0.85, "fix": "normalize confidence/behaviorChanged from strings before aggregating", "behaviorChanged": false, "sources": ["harness"] },
+    { "where": "install.sh:171", "cause": "installing from a working clone copied a token-bearing .env into the target", "severity": "worth-fixing", "confidence": 0.88, "fix": "exclude .env* and .git from the installer copy", "behaviorChanged": false, "sources": ["security"] }
+  ] },
+  { "source": "board", "findings": [
+    { "where": "scripts/lib/languages.mjs:1", "cause": "Delphi/Pascal was two mis-mapped duplicate entries", "severity": "optional", "confidence": 0.7, "fix": "merge into one systems-family entry", "behaviorChanged": false, "sources": ["docs-truth"] }
+  ] }
+]

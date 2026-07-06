@@ -83,6 +83,18 @@ Reset writes an improvement retro to the persistent `<project>/.refactor-chain/h
 - **Guidelines gate (HARNESS-ENFORCED)** — at the review gate, run `orchestrate.mjs gate-check`; the harness **refuses to advance past the gate** until `guidelines.mjs eval` is PASS (100%) or every failing check is a recorded exception. Not optional, not prose — a wired stop.
 - **`refactor-ruthless-editor`** (docs phase) and **`refactor-memory`** (recall at boot, capture at session end) round out the discipline pack.
 
+## The Conductor (always-on orchestration layer, v4.7.0)
+An always-on layer runs across every phase: at PLAN, **`refactor-orchestrate`** resolves each step's
+**chain-of-skills** (internal `refactor-*` plus external installed skills, via `lib/skill-registry.mjs`),
+its **spec-kit (SDD) commands** (`lib/spec-kit.mjs`), and any external-skill augmentation, then emits a
+`dispatch.parallel[] / sequential[]` plan the host fans out (parallel on Claude Code, sequential on
+Codex). Announce each phase's chain in plain words. The review gate generalizes to the **multi-pass
+review loop** (`review-loop-*`): at least 3 passes for a review-class target, until a round turns up
+nothing new; a **fast path** (`fastPath:true` / `depthFor<=1`) takes a single verify-and-refute pass for
+a one-step lane (debug fix, tidy) instead of the loop. The Conductor **composes with and never bypasses**
+the state machine, guards, hooks, or gates; `conduct` is read-only w.r.t. `state.steps`. Standalone entry:
+**`/refactor-orchestrate`**. Emit the plan with `orchestrate.mjs conduct --target <project>`.
+
 ## Resuming
 Always begin with `orchestrate.mjs status --target <project>`. If `active:true`, resume at the reported phase/step — do NOT re-init. The SessionStart hook (`boot.mjs`) surfaces a paused run automatically.
 

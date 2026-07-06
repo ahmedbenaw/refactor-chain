@@ -121,7 +121,7 @@ export function aggregateLensResults(lensResults) {
 // ---- CLI ----
 // pathToFileURL correctly encodes spaces/specials — a raw `file://${argv[1]}` comparison fails
 // on a path with a space (the exact condition boot.mjs warns about), silently no-op'ing the CLI.
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
   const opt = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i >= 0 && i + 1 < argv.length ? argv[i + 1] : d; };

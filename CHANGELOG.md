@@ -5,6 +5,43 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] — 2026-07
+
+The Conductor: native multi-pass orchestration. The method that produced the v4.6.6 wave — a
+chain-of-skills per task, spec-kit commands per phase, and a multi-pass review until dry — was run by
+hand. It is now a native capability, generalized to the whole plugin, async by construction, and
+non-regressing on every existing behavior.
+
+### Added — The Conductor
+- Four synchronous, deterministic, zero-dep engines: `skill-registry.mjs` (the SPINE constant plus a
+  capability→skill catalog of all 58 internal skills and external installed skills, with open-set
+  discovery), `spec-kit.mjs` (the SDD command adapter), `conductor.mjs` (the dispatch scheduler), and
+  `review-loop.mjs` (the multi-pass controller: cross-round seen ledger, dry predicate, at-least-3
+  floor for a review-class target, budget ceiling, and the findings→SPEC+sprint-plan shaper).
+- `orchestrate.mjs` subcommands `conduct`, `spec-kit`, and `review-loop-plan/record/aggregate/status/
+  abort`. `conduct` is read-only w.r.t. `state.steps`; the loop's final verdict is refused below the
+  floor unless overridden.
+- A new `refactor-orchestrate` skill and `/refactor-orchestrate` command; an always-on layer wired
+  into the pipeline with a fast path for trivial work; two new mode-gated decision checkpoints.
+
+### Fixed — durability and safety
+- The concurrency blocker: `board-record` was a read-modify-write on `board.json` that could
+  lose-update under parallel records. Each lens now writes its own per-lens round file (one writer
+  each); `board-status`/`board-aggregate` read the union, so a v4.6.6 `board.json` still aggregates.
+- `board-record` spread-preserves unknown payload fields; `panel-aggregate.mjs` and every engine's CLI
+  main-check are space-safe and no longer crash when `process.argv[1]` is undefined.
+- `ship-gate` now also blocks "done" while a review loop is mid-flight; `boot` surfaces a paused loop.
+
+### Async and non-regression
+- Emit-as-data: the engines stay synchronous and deterministic; all parallelism is host-side dispatch
+  of the emitted `dispatch.parallel[] / sequential[]` markers (asserted by a no-fan-out test).
+- A run that does not invoke the Conductor produces byte-identical state transitions to v4.6.6.
+
+### Migration — in-flight runs
+- The change is additive: `board.json` keeps `version: 1`, `state.json` stays schema v3, and
+  `reviewLoop` plus the per-lens round files are optional-with-default. A run in flight when v4.7.0
+  installs resumes cleanly; if you prefer a clean slate, `reset` clears the run (history is kept).
+
 ## [4.6.6] — 2026-07
 
 Final-version hardening from a four-pass adversarial self-review (the Review Board run on

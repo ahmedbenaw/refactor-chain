@@ -127,6 +127,31 @@ at the core* (the verify-gated step chain). "Async chain-of-skills" describes th
 orchestration and event model — it never means the safety gates are skipped or the
 dependent steps race.
 
+## The Conductor (v4.7.0) — native multi-pass orchestration
+
+An always-on layer (and the standalone `refactor-orchestrate` skill / `/refactor-orchestrate`
+command) that ports the hand-run method natively. Four synchronous, deterministic, zero-dep engines
+under `scripts/lib/`:
+
+- **`skill-registry.mjs`** — the `SPINE` constant + a capability→skill catalog (all 58 internal
+  `refactor-*` plus external installed skills). `resolve(task, installedSkills)` ranks with a total
+  tie-break; `explore(installedSkills)` is open-set (matches a skill the catalog never listed by its
+  own description). Canonicalizes input order, so output is invariant to installed-skill order.
+- **`spec-kit.mjs`** — maps the 4 real `state.phase` values plus the prose phases to the 8 SDD
+  commands; `emit()` tags each with a mode-gated run marker. Auto-run needs the `.specify` signal.
+- **`conductor.mjs`** — the dispatch scheduler. Composes spine + registry + spec-kit (never
+  re-derives them) and partitions the work into `dispatch.parallel[]` (independent lenses + external
+  skills) vs `dispatch.sequential[]` (the lane chain → gate). Read-only w.r.t. `state.steps`.
+- **`review-loop.mjs`** — a thin controller over the review board: cross-round seen ledger, a dry
+  predicate, `depthFor`/`shouldContinue` (≥3-pass floor for a review-class target, 2-dry-stop,
+  budget ceiling), a scope-mode re-absorb, and the findings→SPEC+sprint-plan shaper.
+
+The `orchestrate.mjs` subcommands `conduct` / `spec-kit` / `review-loop-*` wrap these. The engines
+emit plans as data; **all parallelism is host-side** (see the concurrency model above and
+`skills/refactor-orchestrate/references/async-dispatch-contract.md`). The Conductor composes with
+and never bypasses the veterans (state machine, board, guards, hooks, gates); a run that does not
+invoke it is byte-identical to v4.6.6.
+
 ## The state machine
 
 State lives in `<project>/.refactor-chain/state.json` and survives turns,

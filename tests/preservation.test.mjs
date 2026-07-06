@@ -44,11 +44,11 @@ const V3_NEW_COMMANDS = [
 const cmds = new Set(readdirSync(join(ROOT, "commands")).filter((f) => f.endsWith(".md")).map((f) => f.slice(0, -3)));
 for (const c of V2_COMMANDS) t(`v2 command preserved: /${c}`, cmds.has(c), [...cmds].filter((x) => x.startsWith(c.slice(0, 8))));
 for (const c of V3_NEW_COMMANDS) t(`v3 command present: /${c}`, cmds.has(c), null);
-t("command count = 70", cmds.size === 70, cmds.size); // +refactor-board (v4.6.0)
+t("command count = 71", cmds.size === 71, cmds.size); // +refactor-board (v4.6.0), +refactor-orchestrate (v4.7.0)
 
-// ---- skills: 57, each with a SKILL.md whose frontmatter name matches its dir ----
+// ---- skills: 58, each with a SKILL.md whose frontmatter name matches its dir ----
 const skills = readdirSync(join(ROOT, "skills")).filter((d) => existsSync(join(ROOT, "skills", d, "SKILL.md")));
-t("skill count = 57", skills.length === 57, skills.length); // +refactor-board (v4.6.0)
+t("skill count = 58", skills.length === 58, skills.length); // +refactor-board (v4.6.0), +refactor-orchestrate (v4.7.0)
 for (const c of V2_COMMANDS) {
   if (["check", "fix", "refactor", "refactor-autopilot", "refactor-careful", "refactor-resume",
        "refactor-status", "refactor-stop", "refactor-undo", "refactor-ui-color",

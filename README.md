@@ -10,7 +10,7 @@
 
 refactor-chain looks at a codebase, works out what it actually needs — tidy the
 structure, modernize it, fix a bug, or make the UI better — and routes the job to
-the right lane of **57 native `refactor-*` skills**. It takes a baseline before
+the right lane of **58 native `refactor-*` skills**. It takes a baseline before
 it touches anything, proves behavior is preserved at every single step, runs a
 review gate before it lets the work "ship," and explains the whole thing in plain
 language as it goes. If a step goes wrong it undoes it and tries another way (up to
@@ -204,7 +204,7 @@ UNDERSTAND → DIAGNOSE → PLAN → BASELINE → DO-THE-WORK → SECURE/REVIEW 
 
 | | |
 |---|---|
-| 🧩 **Skills** | 57 native `refactor-*` skills across 5 lanes (plus a cross-lane review board) |
+| 🧩 **Skills** | 58 native `refactor-*` skills across 5 lanes (plus a cross-lane review board) |
 | ⌨️ **Commands** | 70 plain-language slash commands |
 | 🪝 **Hooks** | 6 — resume · intake · risk-guard · self-heal · ship-gate · memory — all dormant unless a chain is active |
 | 🛡️ **Contract** | behavior-preserving, checkpoint before every step, undo always one step away |

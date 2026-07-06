@@ -109,12 +109,29 @@ say `PASS` instead of `BLOCK`.
 ## `board.json` — review-board rounds
 
 Written by `orchestrate.mjs board-plan/board-record/board-aggregate`; independent
-of a chain (a board run works standalone and survives compaction). Shape:
-`{version, rounds:[{round, seed, lensIds[], at, lensResults:[{lens, findings[], verdicts:[{i,verdict,note}]}], ledger}]}`.
+of a chain (a board run works standalone and survives compaction). It carries its
+**own** `version` (currently `1`), independent of `state.json`'s schema-v3. Shape:
+`{version, rounds:[{round, seed, lensIds[], at, lensResults:[{lens, findings[], verdicts:[{i,verdict,note}]}], ledger}], reviewLoop?}`.
 `ledger` is `null` until `board-aggregate` synthesizes the round (dedupe → rank →
-decide), and is re-nulled whenever a new lens is recorded so a stale verdict can't
-survive. Corrupt `board.json` is tolerated (the board commands report it, they
+decide). Corrupt `board.json` is tolerated (the board commands report it, they
 don't crash).
+
+**Per-lens round files (v4.7.0, concurrency-safe).** `board-record` /
+`review-loop-record` write each lens to its own file at
+`.refactor-chain/board/round-<n>/<lens>.json` (one writer per file — no shared
+`board.json` mutation, so parallel background records never lose-update). `board-status`
+and `board-aggregate` read the **union** of any legacy inline `lensResults` and these
+per-lens files (per-lens file wins on conflict), so a v4.6.6 `board.json` still
+aggregates. `board.json` itself is written only at round start and after the record
+barrier (single-writer). Ledger staleness is derived: a stored `ledger.recordedLenses`
+that no longer equals the recorded set marks the ledger stale (a record after aggregate
+re-opens the round). `reset` clears the `board/` per-lens dirs; `board.json` stays.
+
+**`reviewLoop` (v4.7.0, optional, additive).** The multi-pass loop's metadata:
+`{reviewClass, floor, ceiling, seen:[keys], dryRounds, rounds, startedAt, done}`. Absent
+on a plain board run (so a v4.6.6 reader is unaffected); present once `review-loop-plan`
+starts a loop. `boot.mjs` surfaces a `!done` loop for resume; `ship-gate.mjs` blocks
+"done" while one is pending.
 
 Other transient files in the directory: `intake.json` (the last relevant
 utterance + mode, stashed by the UserPromptSubmit hook as deterministic input

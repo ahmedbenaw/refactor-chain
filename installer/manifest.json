@@ -1,6 +1,6 @@
 {
   "name": "refactor-chain",
-  "version": "4.6.6",
+  "version": "4.7.0",
   "description": "Shared install contract. Every installer layer (install.sh, install.ps1, rcx.mjs, Go binary) reads THIS and produces identical results. ahmedbenaw is substituted with the GitHub owner at publish time.",
   "repo": "https://github.com/ahmedbenaw/refactor-chain",
   "tarball": "https://github.com/ahmedbenaw/refactor-chain/archive/refs/heads/main.tar.gz",

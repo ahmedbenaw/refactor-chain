@@ -20,6 +20,8 @@ The pipeline asks the user multi-choice questions **in the chat thread, at the m
 | 7 | Scope-fence flag (⚑ drift) | Adjacent problem found: pursue as a NEW step / park it (noted in write-up) |
 | 8 | Guidelines gate below 100% | Fix the gap now / record an explicit documented exception |
 | 9 | Spec-vs-code conflict | Mode 1: fix code to match spec · Mode 2: fix code / amend spec / record divergence · Mode 3: spec is regenerated |
+| 10 | Conductor proposes an external installed skill | Run it / skip it (careful asks; autopilot runs approved work and says so; ask-once asks once then remembers) |
+| 11 | Review loop, another pass available | Continue the next pass / stop here (past the >=3 floor; autopilot loops until dry without asking) |
 
 ## Rules
 - **Autopilot reduces frequency, never removes destructive-action checkpoints** (5, and any delete/rewrite/force operation always asks).

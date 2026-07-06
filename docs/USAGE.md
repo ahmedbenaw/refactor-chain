@@ -50,7 +50,7 @@ step away). Failures are calm ("that changed behavior — I undid it and I'm
 trying another way, attempt 2 of 3"). Say **"show technical details"** at any
 point for the full engineering view.
 
-## All 70 commands
+## All 71 commands
 
 ### The three doors (start here)
 
@@ -61,6 +61,7 @@ One plain sentence is enough — the pipeline figures out the rest.
 | `/refactor` | Fix or tidy your project — I figure out what's needed and do it safely, one step at a time. |
 | `/fix` | Something is broken or slow — find the real cause and fix it, safely. |
 | `/check` | Review my changes before shipping — a calm, ranked go/no-go. |
+| `/refactor-orchestrate` | The Conductor — run the whole method for a task automatically: a chain-of-skills per step, spec-kit commands per phase, and the multi-pass review loop until dry. |
 
 ### Run control & modes
 

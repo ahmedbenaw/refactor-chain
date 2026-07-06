@@ -80,7 +80,7 @@ jobs:
           echo "$OUT" | grep -q "Downloading refactor-chain" || { echo "FAIL: download branch did NOT run (SRC resolved locally) — this test is not exercising the tarball path"; exit 1; }
           C2="$TH2/.claude"
           n=$(ls "$C2/skills" | grep -c '^refactor' || true)
-          test "$n" -ge 57 || { echo "FAIL: download path installed only $n refactor skills (want >=57) — SRC resolution broke"; exit 1; }
+          test "$n" -ge 58 || { echo "FAIL: download path installed only $n refactor skills (want >=58) — SRC resolution broke"; exit 1; }
           test -f "$C2/skills/refactor-chain/scripts/lib/board.mjs" || { echo "FAIL: board.mjs missing via download path"; exit 1; }
           test -s "$C2/skills/refactor-chain/.rcx-version" || { echo "FAIL: empty/missing version stamp via download path (VERSION unresolved)"; exit 1; }
           echo "installer download-path smoke test OK — $n skills via the REAL download branch, stamp $(cat "$C2/skills/refactor-chain/.rcx-version")"
@@ -93,7 +93,7 @@ jobs:
           C="$TH/.claude"
           test -f "$C/skills/refactor-chain/scripts/lib/board.mjs" || { echo "FAIL: rcx.mjs did not install board.mjs"; exit 1; }
           n=$(ls "$C/skills" | grep -c '^refactor' || true)
-          test "$n" -ge 57 || { echo "FAIL: rcx.mjs installed only $n refactor skills (want >=57)"; exit 1; }
+          test "$n" -ge 58 || { echo "FAIL: rcx.mjs installed only $n refactor skills (want >=58)"; exit 1; }
           test -s "$C/skills/refactor-chain/.rcx-version" || { echo "FAIL: rcx.mjs wrote no version stamp"; exit 1; }
           echo "rcx.mjs behavioral smoke OK — $n skills, board.mjs, stamp present"
 
@@ -130,7 +130,7 @@ jobs:
           C="$TH/.claude"
           test -f "$C/skills/refactor-chain/scripts/lib/board.mjs" || { echo "FAIL: Go installer did not install board.mjs"; exit 1; }
           n=$(ls "$C/skills" | grep -c '^refactor' || true)
-          test "$n" -ge 57 || { echo "FAIL: Go installer installed only $n refactor skills"; exit 1; }
+          test "$n" -ge 58 || { echo "FAIL: Go installer installed only $n refactor skills"; exit 1; }
           test -s "$C/skills/refactor-chain/.rcx-version" || { echo "FAIL: Go installer wrote no version stamp"; exit 1; }
           echo "Go installer behavioral smoke OK — $n skills, board.mjs, stamp present"
 
@@ -153,6 +153,6 @@ jobs:
           $C = Join-Path $TH ".claude"
           if (-not (Test-Path (Join-Path $C "skills\refactor-chain\scripts\lib\board.mjs"))) { Write-Error "FAIL: install.ps1 did not install board.mjs" }
           $n = (Get-ChildItem (Join-Path $C "skills") -Directory | Where-Object { $_.Name -like "refactor*" }).Count
-          if ($n -lt 57) { Write-Error "FAIL: install.ps1 installed only $n refactor skills" }
+          if ($n -lt 58) { Write-Error "FAIL: install.ps1 installed only $n refactor skills" }
           if (-not (Test-Path (Join-Path $C "skills\refactor-chain\.rcx-version"))) { Write-Error "FAIL: install.ps1 wrote no version stamp" }
           Write-Host "install.ps1 behavioral smoke OK — $n skills, board.mjs, stamp present"

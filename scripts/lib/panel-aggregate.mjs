@@ -16,6 +16,7 @@
  *                 sources:[], behaviorChanged?, verdict? }
  */
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 // The shared three-level scale (lower index = more severe).
 export const SEVERITY_ORDER = ["blocker", "worth-fixing", "optional"];
@@ -136,8 +137,9 @@ export function mergeVerdicts(pairs) {
   return (pairs || []).map(({ finding, verdict }) => applyVerdict(finding, verdict)).filter(Boolean);
 }
 
-// ---- CLI ----
-if (import.meta.url === `file://${process.argv[1]}`) {
+// ---- CLI (space-safe main check: pathToFileURL encodes spaces/specials; a raw file://${argv[1]}
+// comparison silently no-ops on a path with a space, the exact class board.mjs already fixed) ----
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const cmd = process.argv[2] || "aggregate";
   let input = "";
   try { input = readFileSync(0, "utf8"); } catch { /* no stdin */ }

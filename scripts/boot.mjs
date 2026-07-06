@@ -35,6 +35,19 @@ try {
     } catch { /* corrupt state — don't banner, don't crash boot (memory recall below still runs) */ }
   }
 
+  // (v4.7.0) surface a paused review LOOP too (board.json is independent of a chain) so it
+  // resumes cleanly across compaction. Never crash boot on a corrupt board.
+  const boardFile = join(cwd, ".refactor-chain", "board.json");
+  if (existsSync(boardFile)) {
+    try {
+      const b = JSON.parse(readFileSync(boardFile, "utf8"));
+      const rl = b.reviewLoop;
+      if (rl && !rl.done) {
+        notes.push(`refactor-chain has a review loop in progress here: round ${rl.rounds ?? "?"}, ${rl.dryRounds ?? 0} dry (floor ${rl.floor ?? 3}). Resume with \`review-loop-status\`, or park it with \`review-loop-abort\`.`);
+      }
+    } catch { /* corrupt board — don't banner, don't crash boot */ }
+  }
+
   // project memory (written by memory-capture.mjs at SessionEnd): inject a one-line recall
   const memFile = join(cwd, ".refactor-chain", "memory", "sessions.jsonl");
   if (existsSync(memFile)) {

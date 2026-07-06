@@ -31,21 +31,23 @@
  *   record-edit --file <f> --target                    -> hook edit signal
  *   reset      --target                                -> finalize retro + clear
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, renameSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, renameSync, readdirSync, appendFileSync } from "node:fs";
+import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { buildPlan, aggregateLensResults } from "./lib/board.mjs";
+// Lane definitions are single-sourced in lib/lanes.mjs so orchestrate (authoritative steps) and
+// conductor (annotation/emission) can never drift. Behavior of buildSteps is unchanged.
+import { BACKEND, WEB, UI, UI_MOBILE, PRINCIPLES_STEP, GATE } from "./lib/lanes.mjs";
+// The Conductor layer (v4.7.0): emit-as-data resolvers the subcommands wrap. All synchronous,
+// deterministic, and READ-ONLY w.r.t. state.steps (only advance/baseline write steps).
+import { conduct as conductPlan } from "./lib/conductor.mjs";
+import { capabilitiesOf } from "./lib/skill-registry.mjs";
+import { emit as emitSpecKit, emitFullFlow } from "./lib/spec-kit.mjs";
+import { dedupVsSeen, shouldContinue, depthFor, shapeArtifacts, FLOOR } from "./lib/review-loop.mjs";
 
 const MAX_RETRIES = 3;
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PRINCIPLES_STEP = "refactor-code-principles";
-const GATE = "refactor-review-gate";
-
-const BACKEND = ["refactor-backend-01-architecture","refactor-backend-02-module-rename","refactor-backend-03-dao-model","refactor-backend-04-service","refactor-backend-05-controller","refactor-backend-06-dependency-guard","refactor-backend-07-api-naming","refactor-backend-08-common-extract","refactor-backend-09-code-optimize"];
-const WEB = ["refactor-web-01-structure","refactor-web-02-modules","refactor-web-03-components","refactor-web-04-layout","refactor-web-05-naming"];
-const UI = ["refactor-ui-tokens","refactor-ui-visual","refactor-ui-components","refactor-ui-a11y"];
-const UI_MOBILE = ["refactor-ui-tokens","refactor-ui-mobile","refactor-ui-components","refactor-ui-a11y"];
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -102,6 +104,38 @@ const readBoard = () => {
   catch { return { version: 1, rounds: [], corrupt: true }; } // corrupt board.json must not crash every board-* command
 };
 const writeBoard = (b) => { atomicWrite(boardFile, JSON.stringify(b, null, 2)); };
+// Per-lens round storage — the concurrency-safe write path. Each finder records ONLY its own
+// lens file (one writer per file, no shared board.json mutation), so parallel background records
+// can never lose-update each other. board.json itself is written only by board-plan (round start)
+// and board-aggregate (post-barrier) — both single-writer. Legacy inline rounds[].lensResults are
+// still read (union), so a v4.6.6 board.json keeps aggregating.
+const boardDir = join(stateDir, "board");
+const roundDir = (round) => join(boardDir, `round-${round}`);
+const lensFileName = (lens) => `${String(lens).toLowerCase().replace(/[^a-z0-9._-]+/g, "_")}.json`;
+const perLensResults = (round) => {
+  const dir = roundDir(round);
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const f of readdirSync(dir)) {
+    if (!f.endsWith(".json")) continue;
+    try { out.push(JSON.parse(readFileSync(join(dir, f), "utf8"))); } catch { /* skip a corrupt per-lens file, never crash the round */ }
+  }
+  return out;
+};
+// The effective lens results for a round: legacy inline ∪ per-lens files (per-lens file wins).
+const effectiveLensResults = (cur) => {
+  const byLens = new Map();
+  for (const r of cur.lensResults || []) if (r && r.lens) byLens.set(r.lens, r);
+  for (const r of perLensResults(cur.round)) if (r && r.lens) byLens.set(r.lens, r);
+  return [...byLens.values()];
+};
+// A stored ledger is fresh only if it aggregated exactly the currently-recorded lens set.
+const ledgerIsFresh = (cur, recordedLenses) => {
+  const led = cur.ledger;
+  if (!led || !Array.isArray(led.recordedLenses)) return false;
+  const now = new Set(recordedLenses);
+  return led.recordedLenses.length === now.size && led.recordedLenses.every((l) => now.has(l));
+};
 // Only read stdin when it is actually piped — on an interactive TTY readFileSync(0) blocks forever.
 const readStdin = () => { if (process.stdin.isTTY) return undefined; try { return JSON.parse(readFileSync(0, "utf8") || "null"); } catch { return undefined; } };
 
@@ -305,12 +339,14 @@ switch (cmd) {
     const round = (Number.isFinite(last) ? last : b.rounds.length) + 1;
     b.rounds.push({ round, seed, lensIds: plan.lensIds, at: nowIso(), lensResults: [], ledger: null });
     writeBoard(b);
+    rmSync(roundDir(round), { recursive: true, force: true }); // start the per-lens round dir clean (round numbers never repeat, but be safe)
     // Additive reference into an active chain's state, if one exists (never required).
     const s = readState(); if (s) { s.panels = s.panels || []; s.panels.push({ round, at: nowIso(), lensIds: plan.lensIds, decision: null }); writeState(s); }
     out({ ok: true, round, plan });
     break;
   }
 
+  case "review-loop-record": // same per-lens record path as board-record (concurrency-safe)
   case "board-record": {
     // Store one lens's findings (+ optional adversarial verdicts) into the current round.
     // Payload on stdin: { "lens": "...", "findings": [...], "verdicts": [{i,verdict,note}] }.
@@ -319,12 +355,17 @@ switch (cmd) {
     if (!cur) { out({ ok: false, blocked: "no board round — run `board-plan` first" }); process.exit(2); }
     const payload = readStdin();
     if (!payload || typeof payload !== "object" || !payload.lens) { out({ ok: false, error: "board-record expects a JSON object on stdin: {lens, findings, verdicts}" }); process.exit(2); }
-    const rec = { lens: payload.lens, findings: Array.isArray(payload.findings) ? payload.findings : [], verdicts: Array.isArray(payload.verdicts) ? payload.verdicts : [] };
-    const i = cur.lensResults.findIndex((r) => r.lens === rec.lens);
-    if (i >= 0) cur.lensResults[i] = rec; else cur.lensResults.push(rec);
-    cur.ledger = null; // a newly recorded/changed lens invalidates any prior aggregation of this round
-    writeBoard(b);
-    out({ ok: true, round: cur.round, lens: rec.lens, findings: rec.findings.length, verdicts: rec.verdicts.length, recordedLenses: cur.lensResults.map((r) => r.lens) });
+    // Spread-preserve unknown payload fields (review-loop metadata etc.) — never a whitelist rebuild
+    // that silently drops them — then normalize the known ones.
+    const rec = { ...payload, lens: payload.lens, findings: Array.isArray(payload.findings) ? payload.findings : [], verdicts: Array.isArray(payload.verdicts) ? payload.verdicts : [] };
+    // Concurrency-safe: write ONLY this lens's own file. No shared board.json mutation here, so N
+    // parallel finder records can never lose-update one another. The stale ledger is detected at
+    // read time (ledgerIsFresh), so we don't need to touch board.json to invalidate it.
+    const dir = roundDir(cur.round);
+    mkdirSync(dir, { recursive: true });
+    atomicWrite(join(dir, lensFileName(rec.lens)), JSON.stringify(rec, null, 2));
+    const recorded = effectiveLensResults(cur).map((r) => r.lens);
+    out({ ok: true, round: cur.round, lens: rec.lens, findings: rec.findings.length, verdicts: rec.verdicts.length, recordedLenses: recorded });
     break;
   }
 
@@ -335,14 +376,16 @@ switch (cmd) {
     if (!cur) { out({ ok: false, blocked: "no board round — run `board-plan` first" }); process.exit(2); }
     // Refuse to synthesize an empty or partially-recorded round — a "go" from zero review is a
     // lie. Every planned lens must be recorded (or pass --partial to aggregate deliberately).
-    const recorded = new Set(cur.lensResults.map((r) => r.lens));
+    const eff = effectiveLensResults(cur);
+    const recorded = new Set(eff.map((r) => r.lens));
     const pending = (cur.lensIds || []).filter((l) => !recorded.has(l));
-    if ((!cur.lensResults.length || pending.length) && !flag("partial")) {
-      out({ ok: false, blocked: `board round ${cur.round} is incomplete — ${cur.lensResults.length}/${(cur.lensIds || []).length} lenses recorded${pending.length ? ` (pending: ${pending.join(", ")})` : ""}. Record every lens, or pass --partial to aggregate a deliberately partial round.`, pending });
+    if ((!eff.length || pending.length) && !flag("partial")) {
+      out({ ok: false, blocked: `board round ${cur.round} is incomplete — ${eff.length}/${(cur.lensIds || []).length} lenses recorded${pending.length ? ` (pending: ${pending.join(", ")})` : ""}. Record every lens, or pass --partial to aggregate a deliberately partial round.`, pending });
       process.exit(2);
     }
-    const ledger = aggregateLensResults(cur.lensResults);
-    cur.ledger = ledger; writeBoard(b);
+    const ledger = aggregateLensResults(eff);
+    ledger.recordedLenses = [...recorded]; // pin the aggregated set so a later record marks it stale
+    cur.ledger = ledger; writeBoard(b); // single writer, AFTER the parallel record barrier — safe
     const s = readState(); if (s && Array.isArray(s.panels) && s.panels.length) { s.panels[s.panels.length - 1].decision = ledger.decision; writeState(s); }
     out({ ok: true, round: cur.round, ...ledger });
     break;
@@ -353,10 +396,134 @@ switch (cmd) {
     const b = readBoard();
     const cur = b.rounds[b.rounds.length - 1];
     if (!cur) { out({ active: false, note: "no board round yet" }); break; }
+    const recorded = effectiveLensResults(cur).map((r) => r.lens);
+    const recordedSet = new Set(recorded);
+    const fresh = ledgerIsFresh(cur, recorded); // a record after aggregate makes the stored ledger stale
     out({ active: true, round: cur.round, seed: cur.seed, lensIds: cur.lensIds,
-          recordedLenses: cur.lensResults.map((r) => r.lens),
-          pendingLenses: cur.lensIds.filter((l) => !cur.lensResults.some((r) => r.lens === l)),
-          aggregated: !!cur.ledger, decision: cur.ledger?.decision || null });
+          recordedLenses: recorded,
+          pendingLenses: (cur.lensIds || []).filter((l) => !recordedSet.has(l)),
+          aggregated: fresh, decision: fresh ? (cur.ledger?.decision || null) : null });
+    break;
+  }
+
+  // ── The Conductor subcommands (v4.7.0) ──────────────────────────────────────────────────────
+  case "conduct": {
+    // Emit the resolved conductor plan for the current step (or a standalone --task). READ-ONLY:
+    // it never writes state.steps — it only emits data the host dispatches. --dry is for CI.
+    const s = readState();
+    const d = s ? s.diagnosis : diagnose([...(opt("utterance") ? ["--utterance", opt("utterance")] : []), "--mode", opt("mode", "ask")]);
+    const mode = opt("mode", s ? s.mode : "ask");
+    let task;
+    if (s && Array.isArray(s.steps) && s.steps[s.cursor]) {
+      const skill = s.steps[s.cursor].skill;
+      task = { id: skill, phase: s.phase, capabilities: capabilitiesOf(skill) };
+    } else {
+      const caps = opt("caps") ? opt("caps").split(",").map((x) => x.trim()).filter(Boolean) : [];
+      task = { id: opt("task", "task"), phase: opt("phase", ""), capabilities: caps };
+    }
+    const installed = opt("installed") ? opt("installed").split(",").map((x) => x.trim()).filter(Boolean) : null;
+    out({ ok: true, dry: flag("dry"), ...conductPlan(task, d, mode, installed) });
+    break;
+  }
+
+  case "spec-kit": {
+    // Emit the SDD command sequence for the run/task. Guard: never emit AUTO-run markers on a repo
+    // with no `.specify` signal, even in autopilot — SDD auto-run requires the signal.
+    const s = readState();
+    const detected = !!(s && s.diagnosis && s.diagnosis.specKit);
+    const mode = opt("mode", s ? s.mode : "ask");
+    const phases = opt("phases") ? opt("phases").split(",").map((x) => x.trim()).filter(Boolean) : null;
+    let e = phases ? emitSpecKit(phases, mode) : emitFullFlow(mode);
+    if (!detected) e = { ...e, sequence: e.sequence.map((x) => (x.run === "auto" ? { ...x, run: "confirm" } : x)) };
+    out({ ok: true, detected, ...e });
+    break;
+  }
+
+  case "review-loop-plan": {
+    // Start (or resume) an N-pass review loop. Reuses board rounds; loop metadata lives in
+    // board.json.reviewLoop (resumable across compaction). --restart re-inits; --fast = not review-class.
+    const b = readBoard();
+    if (b.corrupt) { out({ ok: false, blocked: "board.json is corrupt — remove .refactor-chain/board.json to start fresh" }); process.exit(2); }
+    const lenses = opt("lenses") ? opt("lenses").split(",").map((x) => x.trim()).filter(Boolean) : null;
+    const seed = parseInt(opt("seed", "0"), 10) || 0;
+    const reviewClass = !flag("fast");
+    if (!b.reviewLoop || flag("restart")) {
+      b.reviewLoop = { reviewClass, floor: FLOOR, ceiling: depthFor({ reviewClass, loc: parseInt(opt("loc", "0"), 10) || 0 }), seen: [], dryRounds: 0, rounds: 0, startedAt: nowIso(), done: false };
+    }
+    const plan = buildPlan(target, lenses, seed);
+    const last = b.rounds.length ? Number(b.rounds[b.rounds.length - 1].round) : 0;
+    const round = (Number.isFinite(last) ? last : b.rounds.length) + 1;
+    b.rounds.push({ round, seed, lensIds: plan.lensIds, at: nowIso(), lensResults: [], ledger: null });
+    rmSync(roundDir(round), { recursive: true, force: true });
+    writeBoard(b);
+    out({ ok: true, round, reviewClass: b.reviewLoop.reviewClass, floor: b.reviewLoop.floor, ceiling: b.reviewLoop.ceiling, roundsSoFar: b.reviewLoop.rounds, plan });
+    break;
+  }
+
+  case "review-loop-aggregate": {
+    // Aggregate the current round, fold survivors into the cross-round seen ledger, update the dry
+    // count, and report whether the loop should continue. GUARD: the FINAL loop verdict (--final)
+    // is refused until rounds>=floor AND 2 dry rounds (review-class) — overridable only by --force-final.
+    const b = readBoard();
+    const cur = b.rounds[b.rounds.length - 1];
+    if (!cur) { out({ ok: false, blocked: "no round — run review-loop-plan first" }); process.exit(2); }
+    const rl = b.reviewLoop || { reviewClass: true, floor: FLOOR, ceiling: depthFor({ reviewClass: true }), seen: [], dryRounds: 0, rounds: 0, done: false };
+    const eff = effectiveLensResults(cur);
+    const recorded = new Set(eff.map((r) => r.lens));
+    const pending = (cur.lensIds || []).filter((l) => !recorded.has(l));
+    if ((!eff.length || pending.length) && !flag("partial")) {
+      out({ ok: false, blocked: `round ${cur.round} is incomplete — ${eff.length}/${(cur.lensIds || []).length} lenses recorded${pending.length ? ` (pending: ${pending.join(", ")})` : ""}. Record every lens or pass --partial.`, pending });
+      process.exit(2);
+    }
+    const ledger = aggregateLensResults(eff);
+    ledger.recordedLenses = [...recorded];
+    cur.ledger = ledger;
+    const findings = [...(ledger.list || []), ...(ledger.appendix || [])];
+    const { fresh, seen } = dedupVsSeen(findings, rl.seen);
+    const dry = fresh.length === 0;
+    rl.seen = [...seen];
+    rl.rounds = (rl.rounds || 0) + 1;
+    rl.dryRounds = dry ? (rl.dryRounds || 0) + 1 : 0;
+    const cont = shouldContinue({ rounds: rl.rounds, dryRounds: rl.dryRounds, ceiling: rl.ceiling, floor: rl.floor, reviewClass: rl.reviewClass });
+    if (flag("final") && cont && !flag("force-final")) {
+      b.reviewLoop = rl; writeBoard(b);
+      out({ ok: false, blocked: `review loop incomplete — rounds ${rl.rounds}, dryRounds ${rl.dryRounds}; need rounds>=${rl.floor} and 2 dry rounds before a final verdict (or --force-final).`, rounds: rl.rounds, dryRounds: rl.dryRounds, shouldContinue: cont });
+      process.exit(2);
+    }
+    rl.done = !cont || flag("force-final");
+    b.reviewLoop = rl; writeBoard(b);
+    let artifactsWritten = false;
+    if (rl.done) {
+      const artifacts = shapeArtifacts(ledger, { title: `review-loop ${basename(target)}` });
+      try {
+        mkdirSync(stateDir, { recursive: true });
+        atomicWrite(join(stateDir, "SPEC.md"), artifacts.spec);
+        atomicWrite(join(stateDir, "sprint-plan.md"), artifacts.sprintPlan);
+        appendFileSync(join(stateDir, "history.jsonl"), JSON.stringify({ at: nowIso(), kind: "review-loop", rounds: rl.rounds, dryRounds: rl.dryRounds, decision: ledger.decision, blockers: ledger.blockers }) + "\n");
+        artifactsWritten = true;
+      } catch { /* artifacts are best-effort; never fail the aggregate on a write error */ }
+    }
+    out({ ok: true, round: cur.round, roundLedger: ledger, rounds: rl.rounds, dryRounds: rl.dryRounds, shouldContinue: cont, loopComplete: rl.done, seen: rl.seen.length, artifactsWritten });
+    break;
+  }
+
+  case "review-loop-status": {
+    const b = readBoard();
+    const rl = b.reviewLoop;
+    if (!rl) { out({ active: false, note: "no review loop — run review-loop-plan" }); break; }
+    const cont = shouldContinue({ rounds: rl.rounds, dryRounds: rl.dryRounds, ceiling: rl.ceiling, floor: rl.floor, reviewClass: rl.reviewClass });
+    out({ active: true, reviewClass: rl.reviewClass, floor: rl.floor, ceiling: rl.ceiling, rounds: rl.rounds, dryRounds: rl.dryRounds, seen: (rl.seen || []).length, shouldContinue: cont, done: !!rl.done });
+    break;
+  }
+
+  case "review-loop-abort": {
+    // Roll back the in-progress round (drop its per-lens files + round entry); prior rounds intact.
+    const b = readBoard();
+    const cur = b.rounds[b.rounds.length - 1];
+    if (cur && !cur.ledger) { rmSync(roundDir(cur.round), { recursive: true, force: true }); b.rounds.pop(); }
+    if (b.reviewLoop) b.reviewLoop.done = true;
+    writeBoard(b);
+    out({ ok: true, aborted: true, roundsRemaining: b.rounds.length });
     break;
   }
 
@@ -398,8 +565,10 @@ switch (cmd) {
         outcome: s.steps.every((x) => x.status === "done") ? "done" : "aborted", at: nowIso() };
       try { execFileSync(process.execPath, [join(HERE, "diagnose.mjs"), "learn", "--target", target, "--retro", JSON.stringify(retro)], { stdio: "ignore" }); } catch { /* non-fatal */ }
     }
-    // Remove only the run state; history.jsonl persists for the history prior.
+    // Remove only the run state; history.jsonl persists for the history prior. Also clear the
+    // v4.7.0 per-lens board round dirs (board.json stays — the board is resumable independent of a chain).
     if (existsSync(stateFile)) rmSync(stateFile, { force: true });
+    rmSync(boardDir, { recursive: true, force: true });
     out({ ok: true, cleared: true, historyKept: existsSync(join(stateDir, "history.jsonl")) });
     break;
   }

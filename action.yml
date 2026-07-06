@@ -67,6 +67,9 @@ runs:
         node "$RC_ACTION_PATH/scripts/diagnose.mjs" classify --target "$RC_TARGET" > "$RC_OUT/classify.json"
         node "$RC_ACTION_PATH/scripts/lib/guidelines.mjs" audit --target "$RC_TARGET" > "$RC_OUT/audit.json"
         node "$RC_ACTION_PATH/scripts/orchestrate.mjs" doctor --target "$RC_TARGET" > "$RC_OUT/doctor.json"
+        # v4.7.0 Conductor: emit the resolved chain-of-skills as a readiness artifact. --dry means
+        # emit-only — CI has no host to fan out Agents, so nothing is dispatched or written.
+        node "$RC_ACTION_PATH/scripts/orchestrate.mjs" conduct --dry --target "$RC_TARGET" > "$RC_OUT/conduct.json" || echo '{"ok":false,"dry":true,"note":"conduct emit skipped"}' > "$RC_OUT/conduct.json"
 
     - name: Assemble refactor-readiness report
       shell: bash
