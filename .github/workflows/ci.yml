@@ -1,0 +1,158 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "20"
+
+      - name: Syntax-check every .mjs file
+        run: |
+          set -euo pipefail
+          find . -name '*.mjs' -not -path './node_modules/*' -print0 |
+            while IFS= read -r -d '' f; do
+              node --check "$f"
+            done
+
+      - name: Run the test suite
+        run: node tests/run-all.mjs
+
+      - name: Run the repo audit
+        run: node scripts/audit.mjs --provenance-strict
+
+      - name: Lint (eslint core rules, zero deps)
+        run: npx --yes eslint .
+
+      - name: shellcheck install.sh
+        run: |
+          # Pinned official static binary (not apt): deterministic version, no mirror flakiness.
+          curl -fsSL -o /tmp/sc.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  /tmp/sc.tar.xz" | sha256sum -c -
+          tar -xJf /tmp/sc.tar.xz -C /tmp
+          /tmp/shellcheck-v0.11.0/shellcheck install.sh
+
+      - name: Validate every tracked .json file
+        run: |
+          set -euo pipefail
+          git ls-files '*.json' | while IFS= read -r f; do
+            node -e "JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8'))" "$f"
+          done
+
+      - name: Installer smoke test (harness scripts land, hooks resolve)
+        run: |
+          set -euo pipefail
+          TH=$(mktemp -d)
+          HOME="$TH" sh install.sh --yes --only claude-code
+          C="$TH/.claude"
+          test -f "$C/skills/refactor-chain/scripts/orchestrate.mjs" || { echo "FAIL: orchestrate.mjs not installed"; exit 1; }
+          test -f "$C/skills/refactor-chain/scripts/lib/board.mjs"   || { echo "FAIL: board.mjs not installed"; exit 1; }
+          node -e 'const fs=require("fs");const C=process.argv[1];const s=JSON.parse(fs.readFileSync(C+"/settings.json","utf8"));let bad=0;for(const a of Object.values(s.hooks||{}))for(const b of a)for(const h of (b.hooks||[])){const m=(h.command||"").match(/"([^"]+\.mjs)"/);if(m&&!fs.existsSync(m[1]))bad++;}if(bad){console.error("FAIL: "+bad+" dangling hook(s)");process.exit(1);}console.log("installer smoke test OK — scripts present, all hooks resolve");' "$C"
+          test -f "$C/skills/refactor-chain/.rcx-version" || { echo "FAIL: no version stamp written on install"; exit 1; }
+          HOME="$TH" sh install.sh --yes --update --only claude-code
+          test -f "$C/skills/refactor-chain/scripts/orchestrate.mjs" || { echo "FAIL: scripts missing after --update"; exit 1; }
+          echo "installer --update smoke test OK — clean reinstall + version stamp"
+
+      - name: Installer DOWNLOAD-path smoke test (tarball-layout source resolution)
+        run: |
+          set -euo pipefail
+          # Pack this checkout the way GitHub's tarball nests it (<repo>-<ref>/…).
+          PK=$(mktemp -d); mkdir -p "$PK/refactor-chain-main"
+          tar --exclude=.git -cf - . | ( cd "$PK/refactor-chain-main" && tar -xf - )
+          TB="$PK/rc.tgz"; ( cd "$PK" && tar -czf "$TB" refactor-chain-main )
+          # Run install.sh from a NEUTRAL dir (no .claude-plugin/plugin.json in SELF_DIR OR cwd)
+          # so the DOWNLOAD branch actually executes. Running it from the checkout would resolve
+          # SRC locally and never touch the tarball/find/sed path this test exists to cover.
+          ND=$(mktemp -d); cp install.sh "$ND/install.sh"
+          TH2=$(mktemp -d)
+          OUT=$( cd "$ND" && RCX_TARBALL_URL="file://$TB" HOME="$TH2" sh "$ND/install.sh" --yes --only claude-code 2>&1 )
+          echo "$OUT"
+          # PROVE the download branch ran — otherwise the test silently re-tests the local path.
+          echo "$OUT" | grep -q "Downloading refactor-chain" || { echo "FAIL: download branch did NOT run (SRC resolved locally) — this test is not exercising the tarball path"; exit 1; }
+          C2="$TH2/.claude"
+          n=$(ls "$C2/skills" | grep -c '^refactor' || true)
+          test "$n" -ge 57 || { echo "FAIL: download path installed only $n refactor skills (want >=57) — SRC resolution broke"; exit 1; }
+          test -f "$C2/skills/refactor-chain/scripts/lib/board.mjs" || { echo "FAIL: board.mjs missing via download path"; exit 1; }
+          test -s "$C2/skills/refactor-chain/.rcx-version" || { echo "FAIL: empty/missing version stamp via download path (VERSION unresolved)"; exit 1; }
+          echo "installer download-path smoke test OK — $n skills via the REAL download branch, stamp $(cat "$C2/skills/refactor-chain/.rcx-version")"
+
+      - name: Installer smoke test — Node wizard (bin/rcx.mjs behavioral)
+        run: |
+          set -euo pipefail
+          TH=$(mktemp -d)
+          HOME="$TH" node bin/rcx.mjs --yes --only claude-code
+          C="$TH/.claude"
+          test -f "$C/skills/refactor-chain/scripts/lib/board.mjs" || { echo "FAIL: rcx.mjs did not install board.mjs"; exit 1; }
+          n=$(ls "$C/skills" | grep -c '^refactor' || true)
+          test "$n" -ge 57 || { echo "FAIL: rcx.mjs installed only $n refactor skills (want >=57)"; exit 1; }
+          test -s "$C/skills/refactor-chain/.rcx-version" || { echo "FAIL: rcx.mjs wrote no version stamp"; exit 1; }
+          echo "rcx.mjs behavioral smoke OK — $n skills, board.mjs, stamp present"
+
+  dogfood:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Run the action on this repo (deterministic mode)
+        uses: ./
+        with:
+          mode: deterministic
+
+  gobuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.21"
+          cache-dependency-path: installer/go/go.mod
+      - name: Build + vet the Go installer
+        working-directory: installer/go
+        run: |
+          go build ./...
+          go vet ./...
+      - name: Go installer BEHAVIORAL smoke (install from the checkout)
+        run: |
+          set -euo pipefail
+          ( cd installer/go && go build -o "$RUNNER_TEMP/rcx-go" . )
+          TH=$(mktemp -d)
+          # Run the binary from the repo root so the Go installer resolves SRC via cwd.
+          ( cd "$GITHUB_WORKSPACE" && HOME="$TH" "$RUNNER_TEMP/rcx-go" -yes -only claude-code )
+          C="$TH/.claude"
+          test -f "$C/skills/refactor-chain/scripts/lib/board.mjs" || { echo "FAIL: Go installer did not install board.mjs"; exit 1; }
+          n=$(ls "$C/skills" | grep -c '^refactor' || true)
+          test "$n" -ge 57 || { echo "FAIL: Go installer installed only $n refactor skills"; exit 1; }
+          test -s "$C/skills/refactor-chain/.rcx-version" || { echo "FAIL: Go installer wrote no version stamp"; exit 1; }
+          echo "Go installer behavioral smoke OK — $n skills, board.mjs, stamp present"
+
+  ps1build:
+    name: PowerShell installer (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: install.ps1 BEHAVIORAL smoke (real Windows — the installer's target OS)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          # install.ps1 uses Windows path literals, so it must be exercised on Windows, not a
+          # Linux pwsh approximation. Point HOME at a temp dir and install the Claude surface.
+          $TH = Join-Path $env:RUNNER_TEMP ("ps-home-" + [Guid]::NewGuid())
+          New-Item -ItemType Directory -Force -Path $TH | Out-Null
+          $env:HOME = $TH
+          $env:USERPROFILE = $TH
+          ./install.ps1 -Yes -Only claude-code
+          $C = Join-Path $TH ".claude"
+          if (-not (Test-Path (Join-Path $C "skills\refactor-chain\scripts\lib\board.mjs"))) { Write-Error "FAIL: install.ps1 did not install board.mjs" }
+          $n = (Get-ChildItem (Join-Path $C "skills") -Directory | Where-Object { $_.Name -like "refactor*" }).Count
+          if ($n -lt 57) { Write-Error "FAIL: install.ps1 installed only $n refactor skills" }
+          if (-not (Test-Path (Join-Path $C "skills\refactor-chain\.rcx-version"))) { Write-Error "FAIL: install.ps1 wrote no version stamp" }
+          Write-Host "install.ps1 behavioral smoke OK — $n skills, board.mjs, stamp present"
